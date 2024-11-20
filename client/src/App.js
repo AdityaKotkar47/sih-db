@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { AlertCircle, CheckCircle2, Plus, Users, Hotel } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Collection configurations
 const COLLECTIONS = {
@@ -170,16 +169,20 @@ const App = () => {
         </div>
 
         {alert.show && (
-          <Alert className={`mb-4 ${alert.type === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className={`mb-4 p-4 rounded-lg ${
+            alert.type === 'success' 
+              ? 'bg-green-50 text-green-700' 
+              : 'bg-red-50 text-red-700'
+          }`}>
             {alert.type === 'success' ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 inline mr-2" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertCircle className="h-4 w-4 inline mr-2" />
             )}
-            <AlertDescription className={alert.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+            <span className={alert.type === 'success' ? 'text-green-700' : 'text-red-700'}>
               {alert.message}
-            </AlertDescription>
-          </Alert>
+            </span>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-4">
