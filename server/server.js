@@ -35,30 +35,36 @@ app.get('/', (req, res) => {
   res.json({ message: 'Server is running' });
 });
 
-// Route to add a new user
-app.post('/api/users', async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
-    
-    // Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    
-    // Create user document
-    const userRef = db.collection('users').doc();
-    await userRef.set({
-      username,
-      email,
-      password: hashedPassword,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    
-    res.status(201).json({ message: 'User created successfully', userId: userRef.id });
-  } catch (error) {
-    console.error('Error creating user:', error);
-    res.status(500).json({ error: 'Failed to create user' });
-  }
-});
+// Generic handler for adding documents to any collection
+app.post('/api/:collection', async (req, res) => {
+    try {
+      const { collection } = req.params;
+      let data = { ...req.body };
+  
+      // Special handling for users collection (password hashing)
+      if (collection === 'users' && data.password) {
+        const salt = await bcrypt.genSalt(10);
+        data.password = await bcrypt.hash(data.password, salt);
+      }
+  
+      // Add timestamp
+      data.createdAt = admin.firestore.FieldValue.serverTimestamp();
+  
+      const docRef = await db.collection(collection).add(data);
+      
+      res.status(201).json({
+        success: true,
+        id: docRef.id,
+        message: `Document added to ${collection} successfully`
+      });
+    } catch (error) {
+      console.error('Error adding document:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
