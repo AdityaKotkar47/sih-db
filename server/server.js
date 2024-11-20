@@ -35,6 +35,44 @@ app.get('/', (req, res) => {
   res.json({ message: 'Server is running' });
 });
 
+
+// Data validation and transformation functions
+const validateAndTransformData = (collection, data) => {
+    const transformed = { ...data };
+    
+    if (collection === 'hotels') {
+      // Convert rating to number
+      if ('rating' in transformed) {
+        transformed.rating = Number(transformed.rating);
+        
+        // Validate rating is within bounds
+        if (isNaN(transformed.rating) || transformed.rating < 0 || transformed.rating > 5) {
+          throw new Error('Rating must be a number between 0 and 5');
+        }
+      }
+      
+      // Validate URLs
+      if ('image_url' in transformed && !isValidUrl(transformed.image_url)) {
+        throw new Error('Invalid image URL');
+      }
+      if ('map_url' in transformed && !isValidUrl(transformed.map_url)) {
+        throw new Error('Invalid map URL');
+      }
+    }
+    
+    return transformed;
+  };
+  
+  // URL validation helper
+  const isValidUrl = (string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
 // Generic handler for adding documents to any collection
 app.post('/api/:collection', async (req, res) => {
     try {
@@ -46,7 +84,10 @@ app.post('/api/:collection', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         data.password = await bcrypt.hash(data.password, salt);
       }
-  
+
+      // Validate and transform data based on collection
+      data = validateAndTransformData(collection, data);
+
       // Add timestamp
       data.createdAt = admin.firestore.FieldValue.serverTimestamp();
   
@@ -61,7 +102,7 @@ app.post('/api/:collection', async (req, res) => {
       console.error('Error adding document:', error);
       res.status(500).json({
         success: false,
-        error: error.message
+        error: error.message || 'Failed to add document'
       });
     }
   });
