@@ -40,7 +40,7 @@ const App = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/users', {
+      const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ const App = () => {
     try {
       for (const user of predefinedUsers) {
         try {
-          const response = await fetch('http://localhost:5000/api/users', {
+          const response = await fetch('/api/users', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
