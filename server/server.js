@@ -60,23 +60,6 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Route to get all users
-app.get('/api/users', async (req, res) => {
-  try {
-    const usersSnapshot = await db.collection('users').get();
-    const users = [];
-    usersSnapshot.forEach(doc => {
-      const userData = doc.data();
-      delete userData.password;
-      users.push({ id: doc.id, ...userData });
-    });
-    res.json(users);
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Failed to fetch users' });
-  }
-});
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
