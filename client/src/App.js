@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, CheckCircle2, Plus, Users, MapPin, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Plus, Users, Hotel, Trash2 } from 'lucide-react';
 
 // Collection configurations
 const COLLECTIONS = {
@@ -17,7 +17,7 @@ const COLLECTIONS = {
   },
   itenaries: {
     name: 'Itenaries',
-    icon: MapPin,
+    icon: Hotel,
     fields: [
       { name: 'location', type: 'text', label: 'Location', required: true },
       {
