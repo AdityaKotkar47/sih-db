@@ -20,7 +20,10 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
 });
 
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
 app.use(express.json());
 
 // Test route
