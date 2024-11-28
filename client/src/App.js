@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, CheckCircle2, Plus, Users, Hotel } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Plus, Users, MapPin, Trash2 } from 'lucide-react';
 
 // Collection configurations
 const COLLECTIONS = {
@@ -12,38 +12,68 @@ const COLLECTIONS = {
       { name: 'password', type: 'password', label: 'Password', required: true }
     ],
     bulkData: [
-      { username: 'techExplorer42', email: 'tech.explorer42@email.com', password: 'TE#x9$mK2p' },
-      { username: 'dataWizard89', email: 'data.wizard89@email.com', password: 'DW#8pL$n3m' },
-      { username: 'cloudNinja55', email: 'cloud.ninja55@email.com', password: 'CN@5k#Jp7q' },
-      { username: 'pixelMaster77', email: 'pixel.master77@email.com', password: 'PM&7n$Kw4x' },
-      { username: 'codePhoenix23', email: 'code.phoenix23@email.com', password: 'CP#2j$Ht8v' },
-      { username: 'webPioneer91', email: 'web.pioneer91@email.com', password: 'WP@9m#Ns5k' },
-      { username: 'byteCrafter68', email: 'byte.crafter68@email.com', password: 'BC&6p$Lm3w' },
-      { username: 'netArchitect34', email: 'net.architect34@email.com', password: 'NA#3h$Rt7j' },
-      { username: 'appInventor82', email: 'app.inventor82@email.com', password: 'AI@8k#Mp4v' },
-      { username: 'devSage45', email: 'dev.sage45@email.com', password: 'DS#4n$Bq9w' }
+      // Existing bulk data can be removed or retained as needed
     ]
   },
-  hotels: {
-    name: 'Hotels',
-    icon: Hotel,
+  itenaries: {
+    name: 'Itenaries',
+    icon: MapPin,
     fields: [
-      { name: 'name', type: 'text', label: 'Hotel Name', required: true },
-      { name: 'image_url', type: 'url', label: 'Image URL', required: true },
-      { name: 'map_url', type: 'url', label: 'Map URL', required: true },
-      { name: 'rating', type: 'number', label: 'Rating', required: true, min: 0, max: 5, step: 0.1 }
+      { name: 'location', type: 'text', label: 'Location', required: true },
+      {
+        name: 'hotels',
+        type: 'array',
+        label: 'Hotels',
+        fields: [
+          { name: 'name', type: 'text', label: 'Hotel Name', required: true },
+          { name: 'address', type: 'text', label: 'Address', required: true },
+          { name: 'map_url', type: 'url', label: 'Map URL', required: true },
+          { name: 'image_url', type: 'url', label: 'Image URL', required: true },
+          { name: 'ratings', type: 'number', label: 'Ratings', required: true, min: 0, max: 5, step: 0.1 }
+        ]
+      },
+      {
+        name: 'tourist_spots',
+        type: 'array',
+        label: 'Tourist Spots',
+        fields: [
+          { name: 'name', type: 'text', label: 'Spot Name', required: true },
+          { name: 'address', type: 'text', label: 'Address', required: true },
+          { name: 'map_url', type: 'url', label: 'Map URL', required: true },
+          { name: 'image_url', type: 'url', label: 'Image URL', required: true },
+          { name: 'ratings', type: 'number', label: 'Ratings', required: true, min: 0, max: 5, step: 0.1 }
+        ]
+      },
+      {
+        name: 'restaurants',
+        type: 'array',
+        label: 'Restaurants',
+        fields: [
+          { name: 'name', type: 'text', label: 'Restaurant Name', required: true },
+          { name: 'address', type: 'text', label: 'Address', required: true },
+          { name: 'map_url', type: 'url', label: 'Map URL', required: true },
+          { name: 'image_url', type: 'url', label: 'Image URL', required: true },
+          { name: 'ratings', type: 'number', label: 'Ratings', required: true, min: 0, max: 5, step: 0.1 }
+        ]
+      },
+      {
+        name: 'market_places',
+        type: 'array',
+        label: 'Market Places',
+        fields: [
+          { name: 'name', type: 'text', label: 'Market Place Name', required: true },
+          { name: 'address', type: 'text', label: 'Address', required: true },
+          { name: 'map_url', type: 'url', label: 'Map URL', required: true },
+          { name: 'image_url', type: 'url', label: 'Image URL', required: true },
+          { name: 'ratings', type: 'number', label: 'Ratings', required: true, min: 0, max: 5, step: 0.1 }
+        ]
+      }
     ],
     bulkData: [
-      {
-        name: "Hyatt Pune",
-        image_url: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/28/04/40/58/hyatt-pune.jpg?w=1000&h=-1&s=1",
-        map_url: "https://maps.app.goo.gl/HSfEEK4uDwHSQs8NA",
-        rating: 4.4
-      },
-      // Add more sample hotel data here if needed
+      // Remove or leave empty as bulk add is being removed
     ]
   }
-  // Add more collections here as needed
+  // Remove other collections if any
 };
 
 const App = () => {
@@ -56,7 +86,11 @@ const App = () => {
   React.useEffect(() => {
     const initialData = {};
     COLLECTIONS[selectedCollection].fields.forEach(field => {
-      initialData[field.name] = '';
+      if (field.type === 'array') {
+        initialData[field.name] = [];
+      } else {
+        initialData[field.name] = '';
+      }
     });
     setFormData(initialData);
   }, [selectedCollection]);
@@ -67,6 +101,39 @@ const App = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleNestedInputChange = (e, fieldName, index, nestedField) => {
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const updatedArray = [...(prev[fieldName] || [])];
+      updatedArray[index] = {
+        ...updatedArray[index],
+        [name]: value
+      };
+      return {
+        ...prev,
+        [fieldName]: updatedArray
+      };
+    });
+  };
+
+  const addNestedItem = (fieldName) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: [...(prev[fieldName] || []), {}]
+    }));
+  };
+
+  const removeNestedItem = (fieldName, index) => {
+    setFormData(prev => {
+      const updatedArray = [...(prev[fieldName] || [])];
+      updatedArray.splice(index, 1);
+      return {
+        ...prev,
+        [fieldName]: updatedArray
+      };
+    });
   };
 
   const showAlert = (type, message) => {
@@ -94,7 +161,11 @@ const App = () => {
       // Reset form
       const initialData = {};
       COLLECTIONS[selectedCollection].fields.forEach(field => {
-        initialData[field.name] = '';
+        if (field.type === 'array') {
+          initialData[field.name] = [];
+        } else {
+          initialData[field.name] = '';
+        }
       });
       setFormData(initialData);
     } catch (error) {
@@ -104,50 +175,17 @@ const App = () => {
     }
   };
 
-  const handleBulkAdd = async () => {
-    setLoading(true);
-    const bulkData = COLLECTIONS[selectedCollection].bulkData;
-    let successCount = 0;
-    let errorCount = 0;
-
-    try {
-      for (const item of bulkData) {
-        try {
-          const response = await fetch(`/api/${selectedCollection}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(item)
-          });
-
-          if (!response.ok) throw new Error(`Failed to add ${selectedCollection} entry`);
-          successCount++;
-        } catch (error) {
-          errorCount++;
-          console.error(`Error adding entry:`, error);
-        }
-      }
-
-      showAlert('success', `Added ${successCount} entries successfully! ${errorCount ? `(${errorCount} failed)` : ''}`);
-    } catch (error) {
-      showAlert('error', 'Bulk add operation failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const CollectionIcon = COLLECTIONS[selectedCollection].icon;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto">
+      <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <CollectionIcon className="h-12 w-12 text-blue-600" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Data Entry</h2>
-          <p className="mt-2 text-gray-600">Add entries to Firestore database</p>
+          <p className="mt-2 text-gray-600">Add entries to Pravaah database</p>
         </div>
 
         {/* Collection Selector */}
@@ -187,23 +225,70 @@ const App = () => {
 
         <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-4">
           {COLLECTIONS[selectedCollection].fields.map((field) => (
-            <div key={field.name}>
-              <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
-                {field.label}
-              </label>
-              <input
-                type={field.type}
-                id={field.name}
-                name={field.name}
-                value={formData[field.name] || ''}
-                onChange={handleInputChange}
-                required={field.required}
-                min={field.min}
-                max={field.max}
-                step={field.step}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+            field.type !== 'array' ? (
+              <div key={field.name}>
+                <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
+                  {field.label}
+                </label>
+                <input
+                  type={field.type}
+                  id={field.name}
+                  name={field.name}
+                  value={formData[field.name] || ''}
+                  onChange={handleInputChange}
+                  required={field.required}
+                  min={field.min}
+                  max={field.max}
+                  step={field.step}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            ) : (
+              <div key={field.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {field.label}
+                </label>
+                {(formData[field.name] || []).map((item, index) => (
+                  <div key={index} className="mb-4 border p-4 rounded-lg relative">
+                    <button
+                      type="button"
+                      onClick={() => removeNestedItem(field.name, index)}
+                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                      title="Remove Item"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                    {field.fields.map(nestedField => (
+                      <div key={nestedField.name} className="mb-2">
+                        <label htmlFor={`${field.name}.${index}.${nestedField.name}`} className="block text-sm font-medium text-gray-700">
+                          {nestedField.label}
+                        </label>
+                        <input
+                          type={nestedField.type}
+                          id={`${field.name}.${index}.${nestedField.name}`}
+                          name={nestedField.name}
+                          value={item[nestedField.name] || ''}
+                          onChange={(e) => handleNestedInputChange(e, field.name, index, nestedField)}
+                          required={nestedField.required}
+                          min={nestedField.min}
+                          max={nestedField.max}
+                          step={nestedField.step}
+                          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addNestedItem(field.name)}
+                  className="mt-2 flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add {field.label.slice(0, -1)}
+                </button>
+              </div>
+            )
           ))}
 
           <div className="flex space-x-4">
@@ -215,18 +300,6 @@ const App = () => {
               <Plus className="h-4 w-4 mr-2" />
               Add Entry
             </button>
-
-            {COLLECTIONS[selectedCollection].bulkData && (
-              <button
-                type="button"
-                onClick={handleBulkAdd}
-                disabled={loading}
-                className="flex-1 flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Bulk Add
-              </button>
-            )}
           </div>
         </form>
 

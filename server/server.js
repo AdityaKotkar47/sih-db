@@ -1,31 +1,24 @@
 const express = require('express');
 const cors = require('cors');
-const admin = require('firebase-admin');
+const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
+const User = require('./models/User');
+const Itinerary = require('./models/Itinerary');
+
 const app = express();
 
-// Initialize Firebase Admin with your configuration
-const serviceAccount = {
-  type: process.env.FIREBASE_TYPE,
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY,
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: process.env.FIREBASE_AUTH_URI,
-  token_uri: process.env.FIREBASE_TOKEN_URI,
-  auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-  universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN
-};
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://pravaah-firebase-default-rtdb.asia-southeast1.firebasedatabase.app"
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => {
+    console.error('Failed to connect to MongoDB', err);
+    process.exit(1);
 });
-
-const db = admin.firestore();
 
 app.use(cors());
 app.use(express.json());
@@ -35,79 +28,85 @@ app.get('/', (req, res) => {
   res.json({ message: 'Server is running' });
 });
 
+// URL validation helper
+const isValidUrl = (string) => {
+    try {
+        new URL(string);
+        return true;
+    } catch (_) {
+        return false;
+    }
+};
 
 // Data validation and transformation functions
 const validateAndTransformData = (collection, data) => {
-    const transformed = { ...data };
-    
-    if (collection === 'hotels') {
-      // Convert rating to number
-      if ('rating' in transformed) {
-        transformed.rating = Number(transformed.rating);
-        
-        // Validate rating is within bounds
-        if (isNaN(transformed.rating) || transformed.rating < 0 || transformed.rating > 5) {
-          throw new Error('Rating must be a number between 0 and 5');
+    if (collection === 'itenaries') {
+        if (data.location && typeof data.location !== 'string') {
+            throw new Error('Location must be a string');
         }
-      }
-      
-      // Validate URLs
-      if ('image_url' in transformed && !isValidUrl(transformed.image_url)) {
-        throw new Error('Invalid image URL');
-      }
-      if ('map_url' in transformed && !isValidUrl(transformed.map_url)) {
-        throw new Error('Invalid map URL');
-      }
+
+        const placesCategories = ['hotels', 'tourist_spots', 'restaurants', 'market_places'];
+        placesCategories.forEach(category => {
+            if (data[category]) {
+                data[category].forEach(place => {
+                    if (!isValidUrl(place.map_url)) {
+                        throw new Error(`Invalid map URL in ${category}`);
+                    }
+                    if (!isValidUrl(place.image_url)) {
+                        throw new Error(`Invalid image URL in ${category}`);
+                    }
+                    if (isNaN(place.ratings) || place.ratings < 0 || place.ratings > 5) {
+                        throw new Error(`Ratings in ${category} must be a number between 0 and 5`);
+                    }
+                });
+            }
+        });
     }
-    
-    return transformed;
-  };
-  
-  // URL validation helper
-  const isValidUrl = (string) => {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
+
+    return data;
+};
 
 // Generic handler for adding documents to any collection
 app.post('/api/:collection', async (req, res) => {
     try {
-      const { collection } = req.params;
-      let data = { ...req.body };
-  
-      // Special handling for users collection (password hashing)
-      if (collection === 'users' && data.password) {
-        const salt = await bcrypt.genSalt(10);
-        data.password = await bcrypt.hash(data.password, salt);
-      }
+        const { collection } = req.params;
+        let data = { ...req.body };
 
-      // Validate and transform data based on collection
-      data = validateAndTransformData(collection, data);
+        // Special handling for users collection (password hashing)
+        if (collection === 'users' && data.password) {
+            const salt = await bcrypt.genSalt(10);
+            data.password = await bcrypt.hash(data.password, salt);
+        }
 
-      // Add timestamp
-      data.createdAt = admin.firestore.FieldValue.serverTimestamp();
-  
-      const docRef = await db.collection(collection).add(data);
-      
-      res.status(201).json({
-        success: true,
-        id: docRef.id,
-        message: `Document added to ${collection} successfully`
-      });
+        // Validate and transform data based on collection
+        data = validateAndTransformData(collection, data);
+
+        let doc;
+        if (collection === 'users') {
+            doc = new User(data);
+        } else if (collection === 'itenaries') {
+            doc = new Itinerary(data);
+        } else {
+            throw new Error('Invalid collection');
+        }
+
+        const savedDoc = await doc.save();
+
+        res.status(201).json({
+            success: true,
+            id: savedDoc._id,
+            message: `Document added to ${collection} successfully`
+        });
     } catch (error) {
-      console.error('Error adding document:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to add document'
-      });
+        console.error('Error adding document:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to add document'
+        });
     }
-  });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
